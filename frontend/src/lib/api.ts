@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 // Use VITE_API_URL in production. Fallback points to the deployed backend.
-const API_URL = import.meta.env.VITE_API_URL || 'https://sbd-class-non-redis-2ndz.vercel.app/api';
+const RAW_API_URL = import.meta.env.VITE_API_URL || 'https://sbd-class-non-redis-2ndz.vercel.app/api';
+const API_URL = RAW_API_URL.endsWith('/api') ? RAW_API_URL : `${RAW_API_URL.replace(/\/$/, '')}/api`;
 
 export const api = axios.create({
   baseURL: API_URL,
