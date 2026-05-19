@@ -2,7 +2,7 @@ import './env.js';
 import express from 'express';
 import cors from 'cors';
 
-const app = express();
+export const app = express();
 
 app.use(cors());
 app.use(express.json());
@@ -13,9 +13,15 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api', (req, res, next) => {
     import('./routes/api.js')
         .then((m) => m.default(req, res, next))
-        .catch(next);
+        .catch((err) => {
+            console.error('Error loading API routes:', err);
+            // Provide a helpful message for missing DB env or connection errors
+            res.status(500).json({ error: 'Failed to load API routes', message: err.message });
+        });
 });
 
-export default app;
-//# sourceMappingURL=index.js.map
+// Default export must be a function (handler) or server instance for Vercel.
+export default function handler(req, res) {
+    return app(req, res);
+}
 //# sourceMappingURL=index.js.map

@@ -1,7 +1,6 @@
-import app from '../src/index.js';
+import { app } from '../src/index.js';
 
-// Vercel serverless function entrypoint
-// Export a request handler that delegates to the Express app.
+// Vercel serverless function entrypoint delegating to named `app` export.
 export default async function handler(req, res) {
 	try {
 		return app(req, res);

@@ -1,5 +1,6 @@
 import './env.js';
 import express from 'express';
-declare const app: express.Express;
-export default app;
+export declare const app: express.Express;
+declare function handler(req: any, res: any): any;
+export default handler;
 //# sourceMappingURL=index.d.ts.map

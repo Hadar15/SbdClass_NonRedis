@@ -27,7 +27,13 @@ app.use(cors());
 app.use(express.json());
 
 // API Routes
-app.use('/api', apiRoutes);
+app.use('/api', (req, res, next) => {
+  import('./routes/api.js')
+    .then((m) => m.default(req, res, next))
+    .catch((err) => {
+      console.error('Error loading API routes:', err);
+      res.status(500).json({ error: 'Failed to load API routes', message: err.message });
+    });
 
 app.get('/', (req, res) => {
   res.json({ message: 'TicketFlash Backend API' });
