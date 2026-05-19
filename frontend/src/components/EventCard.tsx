@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, MapPin, Tag } from 'lucide-react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 
 interface EventCardProps {
   id: string;
@@ -60,7 +60,7 @@ export const EventCard = ({ id, title, description, price, date, stock, imageUrl
         </div>
 
         <Link 
-          href={`/event/${id}`}
+          to={`/event/${id}`}
           className={`war-button flex w-full items-center justify-center rounded-xl py-3 text-sm font-bold text-white ${stock === 0 ? 'opacity-50 pointer-events-none grayscale' : ''}`}
         >
           {stock > 0 ? 'Dapatkan Tiket' : 'Habis Terjual'}
