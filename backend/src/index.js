@@ -2,7 +2,25 @@ import './env.js';
 import express from 'express';
 import cors from 'cors';
 export const app = express();
-app.use(cors());
+
+const allowedOrigins = [
+    process.env.FRONTEND_URL || 'https://sbd-class-non-redis.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+];
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin))
+            return callback(null, true);
+        return callback(new Error('CORS blocked'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+app.options('*', cors());
 app.use(express.json());
 app.get('/', (req, res) => res.json({ message: 'TicketFlash Backend API' }));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
