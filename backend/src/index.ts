@@ -33,6 +33,11 @@ app.get('/', (req, res) => {
   res.json({ message: 'TicketFlash Backend API' });
 });
 
+// Health check (accessible at /api/health when deployed under Vercel's /api/*)
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok' });
+});
+
 // Real-time connections
 io.on('connection', (socket) => {
   console.log('👤 User connected:', socket.id);
