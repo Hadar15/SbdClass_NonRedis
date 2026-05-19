@@ -18,5 +18,4 @@ app.use('/api', (req, res, next) => {
 export default function handler(req, res) {
     return app(req, res);
 }
-app.use(express.json());
 //# sourceMappingURL=index.js.map

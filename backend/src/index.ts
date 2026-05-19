@@ -23,7 +23,8 @@ app.use('/api', (req, res, next) => {
 export default function handler(req: any, res: any) {
   return app(req, res);
 }
-app.use(express.json());
+
+
 
 
 
