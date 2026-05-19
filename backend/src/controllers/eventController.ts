@@ -38,11 +38,14 @@ export const getEvents = async (req: Request, res: Response) => {
 export const getEventById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const eventResult = await query('SELECT * FROM events WHERE id = $1', [id]);
+    if (!id) return res.status(400).json({ error: 'Event ID is required' });
+    const eventId = Array.isArray(id) ? id[0] : id;
+    if (!eventId) return res.status(400).json({ error: 'Event ID is required' });
+    const eventResult = await query('SELECT * FROM events WHERE id = $1', [eventId]);
     if (eventResult.rowCount === 0) return res.status(404).json({ error: 'Event not found' });
     const event = mapEventRow(eventResult.rows[0]);
 
-    const stock = await getEventStock(id);
+    const stock = await getEventStock(eventId);
     res.json({
       ...event,
       currentStock: stock,
