@@ -1,5 +1,4 @@
 import { query, withTransaction } from '../db.js';
-import { io } from '../index.js';
 
 const PROMOTION_WINDOW_MS = 60 * 1000;
 
@@ -57,8 +56,7 @@ export const joinQueue = async (eventId: string, userId: string) => {
   const createdAt = insertResult.rows[0]?.created_at as Date;
 
   const position = await getWaitingPosition(eventId, createdAt);
-  const queueLength = await getWaitingCount(eventId);
-  io.to(`event:${eventId}`).emit('queue_update', { eventId, queueLength });
+  await getWaitingCount(eventId);
 
   return { status: 'waiting', position, alreadyInQueue: false };
 };
@@ -125,12 +123,7 @@ export const promoteFromQueue = async (eventId: string, count: number = 5) => {
 
   if (waiting.length === 0) return [];
 
-  for (const entry of waiting) {
-    io.to(`event:${eventId}`).emit('user_promoted', { userId: entry.user_id, eventId });
-  }
-
-  const remaining = await getWaitingCount(eventId);
-  io.to(`event:${eventId}`).emit('queue_update', { eventId, queueLength: remaining });
+  await getWaitingCount(eventId);
 
   return waiting.map((entry) => entry.user_id as string);
 };
