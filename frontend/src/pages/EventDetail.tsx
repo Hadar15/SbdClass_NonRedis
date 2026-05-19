@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { getEventById, joinQueue, reserveTicket, confirmPayment } from '../lib/api';
-import { socket } from '../lib/socket';
 import { Calendar, MapPin, Timer, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -61,9 +60,6 @@ export default function EventDetail() {
 
     fetchEvent();
 
-    socket.connect();
-    socket.emit('join_event', id);
-
     const currentUserStr = localStorage.getItem('user');
     let currentUserId: string | null = null;
     if (currentUserStr) {
@@ -72,21 +68,7 @@ export default function EventDetail() {
       currentUserId = parsedUser.id;
     }
 
-    socket.on('queue_update', (data) => {
-      if (data.eventId === id) {
-        // optional queue length update
-      }
-    });
-
-    socket.on('user_promoted', (data) => {
-      if (currentUserId && data.userId === currentUserId && data.eventId === id) {
-        setStatus('promoted');
-      }
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    return () => {};
   }, [id]);
 
   useEffect(() => {
@@ -110,7 +92,9 @@ export default function EventDetail() {
     try {
       setStatus('queueing');
       const res = await joinQueue(id, user.id);
-      setQueuePosition(res.position);
+      setQueuePosition(res.position ?? null);
+      // Serverless mode: no websocket promotions, allow user to proceed immediately
+      setStatus('promoted');
     } catch (error) {
       console.error(error);
       setStatus('idle');
