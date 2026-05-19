@@ -1,16 +1,32 @@
 import type { Request, Response } from 'express';
-import prisma from '../db.js';
-import redis from '../redis';
+import { query } from '../db.js';
+import { getEventStock } from '../services/ticketService.js';
+
+const mapEventRow = (row: any) => ({
+  id: row.id,
+  title: row.title,
+  description: row.description,
+  price: Number(row.price),
+  priceVIP: Number(row.price_vip),
+  priceCAT1: Number(row.price_cat1),
+  priceCAT2: Number(row.price_cat2),
+  imageUrl: row.image_url,
+  totalStock: Number(row.total_stock),
+  date: row.date,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+});
 
 export const getEvents = async (req: Request, res: Response) => {
   try {
-    const events = await prisma.event.findMany();
-    // Enrich with real-time stock from Redis
+    const eventsResult = await query('SELECT * FROM events');
+    const events = eventsResult.rows.map(mapEventRow);
+    // Enrich with real-time stock from the database
     const enrichedEvents = await Promise.all(events.map(async (event) => {
-      const stock = await redis.get(`ticket_stock:${event.id}`);
+      const stock = await getEventStock(event.id);
       return {
         ...event,
-        currentStock: stock ? parseInt(stock) : 0,
+        currentStock: stock,
       };
     }));
     res.json(enrichedEvents);
@@ -22,13 +38,14 @@ export const getEvents = async (req: Request, res: Response) => {
 export const getEventById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const event = await prisma.event.findUnique({ where: { id } });
-    if (!event) return res.status(404).json({ error: 'Event not found' });
+    const eventResult = await query('SELECT * FROM events WHERE id = $1', [id]);
+    if (eventResult.rowCount === 0) return res.status(404).json({ error: 'Event not found' });
+    const event = mapEventRow(eventResult.rows[0]);
 
-    const stock = await redis.get(`ticket_stock:${id}`);
+    const stock = await getEventStock(id);
     res.json({
       ...event,
-      currentStock: stock ? parseInt(stock) : 0,
+      currentStock: stock,
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -44,22 +61,21 @@ export const createEvent = async (req: Request, res: Response) => {
     const parsedPriceCAT2 = priceCAT2 ? parseFloat(priceCAT2) : 800000;
     const basePrice = price ? parseFloat(price) : parsedPriceCAT2;
 
-    const event = await prisma.event.create({
-      data: {
+    const eventResult = await query(
+      'INSERT INTO events (title, description, price, price_vip, price_cat1, price_cat2, image_url, total_stock, date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, now(), now()) RETURNING *',
+      [
         title,
         description,
-        price: basePrice,
-        priceVIP: parsedPriceVIP,
-        priceCAT1: parsedPriceCAT1,
-        priceCAT2: parsedPriceCAT2,
+        basePrice,
+        parsedPriceVIP,
+        parsedPriceCAT1,
+        parsedPriceCAT2,
         imageUrl,
-        totalStock: parseInt(totalStock),
-        date: new Date(date),
-      },
-    });
-
-    // Initialize stock in Redis
-    await redis.set(`ticket_stock:${event.id}`, totalStock);
+        parseInt(totalStock),
+        new Date(date),
+      ]
+    );
+    const event = mapEventRow(eventResult.rows[0]);
     
     res.status(201).json(event);
   } catch (error: any) {

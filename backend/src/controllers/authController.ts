@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import prisma from '../db.js';
+import { query } from '../db.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
@@ -13,8 +13,8 @@ export const register = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Semua kolom wajib diisi' });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
+    const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rowCount && existingUser.rowCount > 0) {
       return res.status(400).json({ error: 'Email sudah terdaftar' });
     }
 
@@ -24,14 +24,11 @@ export const register = async (req: Request, res: Response) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: finalRole,
-      },
-    });
+    const userResult = await query(
+      'INSERT INTO users (name, email, password, role, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now()) RETURNING id, name, email, role',
+      [name, email, hashedPassword, finalRole]
+    );
+    const user = userResult.rows[0];
 
     const token = jwt.sign({ userId: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -54,10 +51,15 @@ export const login = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Email dan password wajib diisi' });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
+    const userResult = await query(
+      'SELECT id, name, email, role, password FROM users WHERE email = $1',
+      [email]
+    );
+    if (userResult.rowCount === 0) {
       return res.status(401).json({ error: 'Email atau password salah' });
     }
+
+    const user = userResult.rows[0];
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {

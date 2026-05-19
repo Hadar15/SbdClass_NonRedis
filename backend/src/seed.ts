@@ -1,10 +1,4 @@
-import './env.js';
-import { PrismaClient } from '@prisma/client';
-import Redis from 'ioredis';
-
-
-const prisma = new PrismaClient();
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379');
+import { query } from './db.js';
 
 
 async function main() {
@@ -37,12 +31,11 @@ async function main() {
   ];
 
   for (const e of events) {
-    const event = await prisma.event.create({
-      data: e,
-    });
-    
-    // Seed Redis stock
-    await redis.set(`ticket_stock:${event.id}`, event.totalStock);
+    const eventResult = await query(
+      'INSERT INTO events (title, description, price, total_stock, date, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, now(), now()) RETURNING id, title',
+      [e.title, e.description, e.price, e.totalStock, e.date]
+    );
+    const event = eventResult.rows[0];
     console.log(`✅ Created event: ${event.title} with ID: ${event.id}`);
   }
 
