@@ -9,6 +9,7 @@ app.use(express.json());
 
 app.get('/', (req, res) => res.json({ message: 'TicketFlash Backend API' }));
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use('/api', (req, res, next) => {
   import('./routes/api.js')
